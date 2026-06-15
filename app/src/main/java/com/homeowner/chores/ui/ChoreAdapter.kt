@@ -1,15 +1,16 @@
 package com.homeowner.chores.ui
 
+import android.graphics.Color
 import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.homeowner.chores.R
 import com.homeowner.chores.data.Chore
+import com.homeowner.chores.data.Room
 import com.homeowner.chores.databinding.ItemChoreBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -23,6 +24,14 @@ class ChoreAdapter(
 
     private val dateFmt = DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale("da"))
     private val today = LocalDate.now()
+
+    // Room map: roomId -> Room, updated externally
+    private var rooms: Map<Int, Room> = emptyMap()
+
+    fun setRooms(roomList: List<Room>) {
+        rooms = roomList.associateBy { it.id }
+        notifyItemRangeChanged(0, itemCount)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChoreViewHolder {
         val binding = ItemChoreBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -41,6 +50,19 @@ class ChoreAdapter(
 
             b.textDescription.text = chore.description
             b.textDescription.visibility = if (chore.description.isEmpty()) View.GONE else View.VISIBLE
+
+            // Room accent bar
+            val room = chore.roomId?.let { rooms[it] }
+            if (room != null) {
+                b.viewRoomAccent.visibility = View.VISIBLE
+                try {
+                    b.viewRoomAccent.setBackgroundColor(Color.parseColor(room.colorHex))
+                } catch (e: IllegalArgumentException) {
+                    b.viewRoomAccent.setBackgroundColor(Color.parseColor("#4A90D9"))
+                }
+            } else {
+                b.viewRoomAccent.visibility = View.GONE
+            }
 
             // Interval label
             b.textInterval.text = if (chore.intervalDays != null && chore.intervalDays > 0)

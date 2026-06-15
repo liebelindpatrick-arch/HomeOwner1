@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/inputRoomName"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Rum navn *">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editRoomName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapSentences" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="Vælg farve"
+        android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+    <LinearLayout
+        android:id="@+id/layoutColorSwatches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- 8 color circles — populated programmatically -->
+        <View
+            android:id="@+id/swatch0"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch1"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch2"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch3"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch4"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch5"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch6"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+        <View
+            android:id="@+id/swatch7"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="4dp" />
+    </LinearLayout>
+
+</LinearLayout>

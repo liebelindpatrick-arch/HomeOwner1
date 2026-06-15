@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_rooms"
+        android:icon="@drawable/ic_rooms"
+        android:title="Rum"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_floor_plan"
+        android:icon="@drawable/ic_floor_plan"
+        android:title="Plantegning"
+        app:showAsAction="ifRoom" />
+
+</menu>

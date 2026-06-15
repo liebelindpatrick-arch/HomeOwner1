@@ -5,11 +5,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.homeowner.chores.data.Chore
@@ -48,16 +52,83 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerChores.layoutManager = LinearLayoutManager(this)
         binding.recyclerChores.adapter = adapter
 
-        viewModel.allChores.observe(this) { chores ->
+        // Observe filtered chores for the list
+        viewModel.filteredChores.observe(this) { chores ->
             adapter.submitList(chores)
             binding.textEmpty.visibility =
-                if (chores.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                if (chores.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        // Observe all chores for the "Dagens overblik" card
+        viewModel.allChores.observe(this) { chores ->
+            val today = LocalDate.now()
+            val dueTodayCount = chores.count {
+                !it.isCompleted && it.nextDueDate == today
+            }
+            binding.textDagensOverblik.text =
+                if (dueTodayCount == 1) "1 pligt klar i dag"
+                else "$dueTodayCount pligter klar i dag"
+        }
+
+        // Observe rooms and populate filter chips + pass to adapter
+        viewModel.allRooms.observe(this) { rooms ->
+            updateRoomFilterChips(rooms)
+            adapter.setRooms(rooms)
         }
 
         binding.fabAdd.setOnClickListener { openEditor(null) }
 
+        // "Alle" chip selection
+        binding.chipFilterAll.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setRoomFilter(null)
+        }
+
         requestNotificationPermissionIfNeeded()
         NotificationScheduler.scheduleDailyCheck(this)
+    }
+
+    private fun updateRoomFilterChips(rooms: List<com.homeowner.chores.data.Room>) {
+        val chipGroup = binding.chipGroupRooms
+        // Remove all chips except the "Alle" chip (index 0)
+        val allChip = binding.chipFilterAll
+        chipGroup.removeAllViews()
+        chipGroup.addView(allChip)
+
+        rooms.forEach { room ->
+            val chip = Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
+                text = room.name
+                isCheckable = true
+                tag = room.id
+                try {
+                    val color = android.graphics.Color.parseColor(room.colorHex)
+                    chipBackgroundColor = android.content.res.ColorStateList.valueOf(color)
+                    setTextColor(android.graphics.Color.WHITE)
+                } catch (e: IllegalArgumentException) { /* ignore bad color */ }
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) viewModel.setRoomFilter(room.id)
+                }
+            }
+            chipGroup.addView(chip)
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_rooms -> {
+                startActivity(Intent(this, RoomsActivity::class.java))
+                true
+            }
+            R.id.action_floor_plan -> {
+                startActivity(Intent(this, FloorPlanActivity::class.java))
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun showMarkDoneDialog(chore: Chore) {

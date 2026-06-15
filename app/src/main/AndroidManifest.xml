@@ -27,5 +27,13 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".RoomsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".FloorPlanActivity"
+            android:exported="false" />
+
     </application>
 </manifest>

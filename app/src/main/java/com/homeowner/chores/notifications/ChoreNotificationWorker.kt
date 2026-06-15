@@ -20,8 +20,8 @@ class ChoreNotificationWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val dao = ChoreDatabase.getDatabase(context).choreDao()
-        val repository = ChoreRepository(dao)
+        val db = ChoreDatabase.getDatabase(context)
+        val repository = ChoreRepository(db.choreDao(), db.roomDao())
         val today = LocalDate.now()
         val dueChores = repository.getChoresDueOn(today)
 
