@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Chore::class], version = 1, exportSchema = false)
+@Database(entities = [Chore::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class ChoreDatabase : RoomDatabase() {
     abstract fun choreDao(): ChoreDao
@@ -20,7 +20,7 @@ abstract class ChoreDatabase : RoomDatabase() {
                     context.applicationContext,
                     ChoreDatabase::class.java,
                     "chore_database"
-                ).build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
     }

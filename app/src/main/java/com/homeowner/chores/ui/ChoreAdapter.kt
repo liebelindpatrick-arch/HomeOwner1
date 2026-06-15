@@ -2,6 +2,7 @@ package com.homeowner.chores.ui
 
 import android.graphics.Paint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -9,11 +10,9 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.homeowner.chores.R
 import com.homeowner.chores.data.Chore
-import com.homeowner.chores.data.RecurrenceType
 import com.homeowner.chores.databinding.ItemChoreBinding
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
 
 class ChoreAdapter(
@@ -22,7 +21,7 @@ class ChoreAdapter(
     private val onDelete: (Chore) -> Unit
 ) : ListAdapter<Chore, ChoreAdapter.ChoreViewHolder>(DIFF_CALLBACK) {
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM", Locale("da"))
+    private val dateFmt = DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale("da"))
     private val today = LocalDate.now()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChoreViewHolder {
@@ -34,63 +33,58 @@ class ChoreAdapter(
         holder.bind(getItem(position))
     }
 
-    inner class ChoreViewHolder(private val binding: ItemChoreBinding) :
-        RecyclerView.ViewHolder(binding.root) {
+    inner class ChoreViewHolder(private val b: ItemChoreBinding) :
+        RecyclerView.ViewHolder(b.root) {
 
         fun bind(chore: Chore) {
-            binding.textChoreName.text = chore.name
-            binding.textDescription.text = chore.description.ifEmpty { "" }
-            binding.textDescription.visibility =
-                if (chore.description.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+            b.textChoreName.text = chore.name
 
-            binding.textRecurrence.text = recurrenceLabel(chore)
-            binding.textDueDate.text = dueDateLabel(chore)
+            b.textDescription.text = chore.description
+            b.textDescription.visibility = if (chore.description.isEmpty()) View.GONE else View.VISIBLE
 
-            val isOverdue = !chore.isCompleted && chore.nextDueDate.isBefore(today)
-            val isToday = chore.nextDueDate == today && !chore.isCompleted
+            // Interval label
+            b.textInterval.text = if (chore.intervalDays != null && chore.intervalDays > 0)
+                "Gentages hver ${chore.intervalDays} dag${if (chore.intervalDays == 1) "" else "e"}"
+            else "Engang"
 
-            val ctx = binding.root.context
-            binding.cardView.strokeColor = when {
-                isOverdue -> ContextCompat.getColor(ctx, R.color.overdue)
-                isToday  -> ContextCompat.getColor(ctx, R.color.due_today)
-                else     -> ContextCompat.getColor(ctx, R.color.card_stroke_default)
-            }
+            // Last completed
+            b.textLastCompleted.text = chore.lastCompletedDate
+                ?.let { "Sidst udført: ${it.format(dateFmt)}" }
+                ?: "Ikke udført endnu"
 
+            // Next due date — prominent
             if (chore.isCompleted) {
-                binding.textChoreName.paintFlags =
-                    binding.textChoreName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                b.chipNextDue.text = "Udført"
+                b.chipNextDue.setChipBackgroundColorResource(R.color.chip_done)
             } else {
-                binding.textChoreName.paintFlags =
-                    binding.textChoreName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                val due = chore.nextDueDate
+                val isOverdue = due.isBefore(today)
+                val isToday = due == today
+
+                b.chipNextDue.text = when {
+                    isOverdue -> "Overskredet  ${due.format(dateFmt)}"
+                    isToday   -> "Næste udførsel: I dag"
+                    due == today.plusDays(1) -> "Næste udførsel: I morgen"
+                    else      -> "Næste udførsel: ${due.format(dateFmt)}"
+                }
+                b.chipNextDue.setChipBackgroundColorResource(when {
+                    isOverdue -> R.color.chip_overdue
+                    isToday   -> R.color.chip_today
+                    else      -> R.color.chip_upcoming
+                })
             }
 
-            binding.buttonDone.isEnabled = !chore.isCompleted
-            binding.buttonDone.setOnClickListener { onMarkDone(chore) }
-            binding.buttonEdit.setOnClickListener { onEdit(chore) }
-            binding.buttonDelete.setOnClickListener { onDelete(chore) }
-        }
-
-        private fun recurrenceLabel(chore: Chore): String = when (chore.recurrenceType) {
-            RecurrenceType.NONE -> "Engang"
-            RecurrenceType.DAILY -> "Dagligt"
-            RecurrenceType.WEEKLY -> {
-                val dayName = chore.nextDueDate.dayOfWeek
-                    .getDisplayName(TextStyle.FULL, Locale("da"))
-                    .replaceFirstChar { it.uppercase() }
-                "Ugentlig – $dayName"
+            // Strikethrough for completed one-time chores
+            if (chore.isCompleted) {
+                b.textChoreName.paintFlags = b.textChoreName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            } else {
+                b.textChoreName.paintFlags = b.textChoreName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
-            RecurrenceType.MONTHLY -> "Månedlig – dag ${chore.dayOfMonth ?: chore.nextDueDate.dayOfMonth}"
-        }
 
-        private fun dueDateLabel(chore: Chore): String {
-            if (chore.isCompleted) return "Udført"
-            val due = chore.nextDueDate
-            return when {
-                due.isBefore(today) -> "Overskredet (${due.format(dateFormatter)})"
-                due == today        -> "I dag"
-                due == today.plusDays(1) -> "I morgen"
-                else                -> due.format(dateFormatter)
-            }
+            b.buttonDone.isEnabled = !chore.isCompleted
+            b.buttonDone.setOnClickListener { onMarkDone(chore) }
+            b.buttonEdit.setOnClickListener { onEdit(chore) }
+            b.buttonDelete.setOnClickListener { onDelete(chore) }
         }
     }
 

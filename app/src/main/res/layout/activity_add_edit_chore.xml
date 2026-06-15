@@ -26,6 +26,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Navn -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/inputName"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -40,8 +41,8 @@
                     android:inputType="textCapSentences" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Beskrivelse -->
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/inputDescription"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -56,124 +57,109 @@
                     android:minLines="2" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Gentagelse -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="4dp"
                 android:text="Gentagelse"
                 android:textAppearance="?attr/textAppearanceTitleSmall" />
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleGroupRecurrence"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:selectionRequired="true"
-                app:singleSelection="true">
+                android:hint="Gentages hver X dage (f.eks. 14)"
+                app:helperText="Lad stå tomt for en engangspligt">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonNone"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editIntervalDays"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:checked="true"
-                    android:text="Ingen" />
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonDaily"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Dagligt" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonWeekly"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Ugentlig" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonMonthly"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Månedlig" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <!-- Date picker (only for NONE recurrence) -->
+            <!-- Sidst udført (kun ved gentagelse) -->
             <LinearLayout
-                android:id="@+id/layoutDatePicker"
+                android:id="@+id/layoutLastCompleted"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical">
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:text="Forfaldsdato"
+                    android:layout_marginBottom="6dp"
+                    android:text="Sidst udført"
                     android:textAppearance="?attr/textAppearanceLabelMedium" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonPickDate"
+                    android:id="@+id/buttonPickLastCompleted"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Vælg dato" />
             </LinearLayout>
 
-            <!-- Weekday spinner (only for WEEKLY recurrence) -->
+            <!-- Forfaldsdato (kun ved engang) -->
             <LinearLayout
-                android:id="@+id/layoutWeekday"
+                android:id="@+id/layoutOneTimeDate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_marginTop="16dp"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:text="Ugedag"
+                    android:layout_marginBottom="6dp"
+                    android:text="Forfaldsdato"
                     android:textAppearance="?attr/textAppearanceLabelMedium" />
 
-                <Spinner
-                    android:id="@+id/spinnerWeekday"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonPickOneTimeDate"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vælg dato" />
             </LinearLayout>
 
-            <!-- Day of month (only for MONTHLY recurrence) -->
-            <LinearLayout
-                android:id="@+id/layoutDayOfMonth"
+            <!-- Næste udførsel (beregnet) -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_marginTop="20dp"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Dag i måneden (1-31)">
+                    android:orientation="vertical"
+                    android:padding="14dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editDayOfMonth"
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="1" />
-                </com.google.android.material.textfield.TextInputLayout>
-            </LinearLayout>
+                        android:text="Næste udførsel"
+                        android:textAppearance="?attr/textAppearanceLabelMedium"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
 
+                    <TextView
+                        android:id="@+id/textNextDueValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Gem-knap -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonSave"
                 android:layout_width="match_parent"

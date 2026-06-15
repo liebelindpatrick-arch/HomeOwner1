@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="seed">#4A90D9</color>
+    <color name="chip_overdue">#B00020</color>
+    <color name="chip_today">#1B6CA8</color>
+    <color name="chip_upcoming">#4A90D9</color>
+    <color name="chip_done">#757575</color>
+    <!-- Legacy aliases kept for notifications worker -->
     <color name="overdue">#B00020</color>
     <color name="due_today">#1B6CA8</color>
     <color name="card_stroke_default">#E0E0E0</color>

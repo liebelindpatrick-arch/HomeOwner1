@@ -1,13 +1,12 @@
 package com.homeowner.chores
 
 import android.os.Bundle
-import android.view.View
-import android.widget.ArrayAdapter
+import android.text.Editable
+import android.text.TextWatcher
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.homeowner.chores.data.Chore
-import com.homeowner.chores.data.RecurrenceType
 import com.homeowner.chores.databinding.ActivityAddEditChoreBinding
 import com.homeowner.chores.ui.ChoreViewModel
 import java.time.Instant
@@ -21,15 +20,14 @@ class AddEditChoreActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddEditChoreBinding
     private lateinit var viewModel: ChoreViewModel
     private var editChore: Chore? = null
-    private var selectedDate: LocalDate = LocalDate.now()
-    private val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale("da"))
+
+    private var lastCompletedDate: LocalDate? = null
+    private var oneTimeDueDate: LocalDate = LocalDate.now()
+
+    private val dateFmt = DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale("da"))
 
     companion object {
         const val EXTRA_CHORE_ID = "chore_id"
-
-        private val WEEKDAYS_DA = listOf(
-            "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,97 +39,96 @@ class AddEditChoreActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[ChoreViewModel::class.java]
 
-        setupWeekdaySpinner()
-        setupRecurrenceToggle()
-        setupDatePicker()
+        setupDatePickers()
+        setupIntervalWatcher()
 
         val choreId = intent.getIntExtra(EXTRA_CHORE_ID, -1)
         if (choreId != -1) {
-            loadChore(choreId)
             supportActionBar?.title = "Rediger pligt"
+            viewModel.allChores.observe(this) { list ->
+                val chore = list.find { it.id == choreId } ?: return@observe
+                if (editChore != null) return@observe
+                editChore = chore
+                populateFields(chore)
+            }
         } else {
             supportActionBar?.title = "Ny pligt"
-            updateDateLabel()
+            updateNextDueLabel()
         }
 
         binding.buttonSave.setOnClickListener { saveChore() }
     }
 
-    private fun setupWeekdaySpinner() {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, WEEKDAYS_DA)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerWeekday.adapter = adapter
-    }
-
-    private fun setupRecurrenceToggle() {
-        binding.toggleGroupRecurrence.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            val type = when (checkedId) {
-                R.id.buttonNone    -> RecurrenceType.NONE
-                R.id.buttonDaily   -> RecurrenceType.DAILY
-                R.id.buttonWeekly  -> RecurrenceType.WEEKLY
-                R.id.buttonMonthly -> RecurrenceType.MONTHLY
-                else               -> RecurrenceType.NONE
+    private fun setupDatePickers() {
+        binding.buttonPickLastCompleted.setOnClickListener {
+            showDatePicker(
+                title = "Hvornår udførte du pligten sidst?",
+                initial = lastCompletedDate ?: LocalDate.now()
+            ) { date ->
+                lastCompletedDate = date
+                binding.buttonPickLastCompleted.text = date.format(dateFmt)
+                updateNextDueLabel()
             }
-            updateRecurrenceFields(type)
+        }
+
+        binding.buttonPickOneTimeDate.setOnClickListener {
+            showDatePicker(
+                title = "Vælg forfaldsdato",
+                initial = oneTimeDueDate
+            ) { date ->
+                oneTimeDueDate = date
+                binding.buttonPickOneTimeDate.text = date.format(dateFmt)
+            }
         }
     }
 
-    private fun setupDatePicker() {
-        binding.buttonPickDate.setOnClickListener {
-            val picker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Vælg dato")
-                .setSelection(selectedDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli())
-                .build()
-            picker.addOnPositiveButtonClickListener { millis ->
-                selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                updateDateLabel()
+    private fun setupIntervalWatcher() {
+        binding.editIntervalDays.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                val interval = s.toString().toIntOrNull() ?: 0
+                binding.layoutLastCompleted.visibility =
+                    if (interval > 0) android.view.View.VISIBLE else android.view.View.GONE
+                binding.layoutOneTimeDate.visibility =
+                    if (interval > 0) android.view.View.GONE else android.view.View.VISIBLE
+                updateNextDueLabel()
             }
-            picker.show(supportFragmentManager, "date_picker")
-        }
+        })
     }
 
-    private fun updateDateLabel() {
-        binding.buttonPickDate.text = selectedDate.format(dateFormatter)
+    private fun updateNextDueLabel() {
+        val interval = binding.editIntervalDays.text.toString().toIntOrNull() ?: 0
+        val nextDue = computeNextDueDate(interval)
+        binding.textNextDueValue.text = nextDue.format(dateFmt)
     }
 
-    private fun updateRecurrenceFields(type: RecurrenceType) {
-        binding.layoutWeekday.visibility = if (type == RecurrenceType.WEEKLY) View.VISIBLE else View.GONE
-        binding.layoutDayOfMonth.visibility = if (type == RecurrenceType.MONTHLY) View.VISIBLE else View.GONE
-        binding.layoutDatePicker.visibility = if (type == RecurrenceType.NONE) View.VISIBLE else View.GONE
-    }
-
-    private fun loadChore(id: Int) {
-        viewModel.allChores.observe(this) { list ->
-            val chore = list.find { it.id == id } ?: return@observe
-            if (editChore != null) return@observe
-            editChore = chore
-            populateFields(chore)
+    private fun computeNextDueDate(interval: Int): LocalDate {
+        return if (interval > 0) {
+            val base = lastCompletedDate ?: LocalDate.now()
+            base.plusDays(interval.toLong())
+        } else {
+            oneTimeDueDate
         }
     }
 
     private fun populateFields(chore: Chore) {
         binding.editName.setText(chore.name)
         binding.editDescription.setText(chore.description)
-        selectedDate = chore.nextDueDate
-        updateDateLabel()
 
-        val buttonId = when (chore.recurrenceType) {
-            RecurrenceType.NONE    -> R.id.buttonNone
-            RecurrenceType.DAILY   -> R.id.buttonDaily
-            RecurrenceType.WEEKLY  -> R.id.buttonWeekly
-            RecurrenceType.MONTHLY -> R.id.buttonMonthly
+        val interval = chore.intervalDays ?: 0
+        if (interval > 0) {
+            binding.editIntervalDays.setText(interval.toString())
         }
-        binding.toggleGroupRecurrence.check(buttonId)
 
-        if (chore.recurrenceType == RecurrenceType.WEEKLY) {
-            val dayIndex = (chore.weekday ?: chore.nextDueDate.dayOfWeek.value) - 1
-            binding.spinnerWeekday.setSelection(dayIndex.coerceIn(0, 6))
-        }
-        if (chore.recurrenceType == RecurrenceType.MONTHLY) {
-            val day = chore.dayOfMonth ?: chore.nextDueDate.dayOfMonth
-            binding.editDayOfMonth.setText(day.toString())
-        }
+        lastCompletedDate = chore.lastCompletedDate
+        binding.buttonPickLastCompleted.text = chore.lastCompletedDate?.format(dateFmt)
+            ?: "Vælg dato"
+
+        oneTimeDueDate = chore.nextDueDate
+        binding.buttonPickOneTimeDate.text = chore.nextDueDate.format(dateFmt)
+
+        updateNextDueLabel()
     }
 
     private fun saveChore() {
@@ -141,31 +138,18 @@ class AddEditChoreActivity : AppCompatActivity() {
             return
         }
         binding.inputName.error = null
+
         val description = binding.editDescription.text.toString().trim()
+        val interval = binding.editIntervalDays.text.toString().toIntOrNull()
+            ?.takeIf { it > 0 }
+        val nextDue = computeNextDueDate(interval ?: 0)
 
-        val recurrenceType = when (binding.toggleGroupRecurrence.checkedButtonId) {
-            R.id.buttonDaily   -> RecurrenceType.DAILY
-            R.id.buttonWeekly  -> RecurrenceType.WEEKLY
-            R.id.buttonMonthly -> RecurrenceType.MONTHLY
-            else               -> RecurrenceType.NONE
-        }
-
-        val dueDate = computeDueDate(recurrenceType)
-
-        val weekday = if (recurrenceType == RecurrenceType.WEEKLY)
-            binding.spinnerWeekday.selectedItemPosition + 1 else null
-
-        val dayOfMonth = if (recurrenceType == RecurrenceType.MONTHLY)
-            binding.editDayOfMonth.text.toString().toIntOrNull()?.coerceIn(1, 31)
-        else null
-
-        val chore = (editChore ?: Chore()).copy(
+        val chore = (editChore ?: Chore(name = "")).copy(
             name = name,
             description = description,
-            recurrenceType = recurrenceType,
-            weekday = weekday,
-            dayOfMonth = dayOfMonth,
-            nextDueDate = dueDate,
+            intervalDays = interval,
+            lastCompletedDate = lastCompletedDate,
+            nextDueDate = nextDue,
             isCompleted = false
         )
 
@@ -173,24 +157,15 @@ class AddEditChoreActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun computeDueDate(type: RecurrenceType): LocalDate {
-        val today = LocalDate.now()
-        return when (type) {
-            RecurrenceType.NONE -> selectedDate
-            RecurrenceType.DAILY -> today
-            RecurrenceType.WEEKLY -> {
-                val targetDay = binding.spinnerWeekday.selectedItemPosition + 1
-                var date = today
-                while (date.dayOfWeek.value != targetDay) date = date.plusDays(1)
-                date
-            }
-            RecurrenceType.MONTHLY -> {
-                val dayOfMonth = binding.editDayOfMonth.text.toString().toIntOrNull()?.coerceIn(1, 28) ?: 1
-                var date = today.withDayOfMonth(dayOfMonth)
-                if (date.isBefore(today)) date = date.plusMonths(1)
-                date
-            }
+    private fun showDatePicker(title: String, initial: LocalDate, onPick: (LocalDate) -> Unit) {
+        val picker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText(title)
+            .setSelection(initial.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli())
+            .build()
+        picker.addOnPositiveButtonClickListener { millis ->
+            onPick(Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate())
         }
+        picker.show(supportFragmentManager, "date_picker")
     }
 
     override fun onSupportNavigateUp(): Boolean {

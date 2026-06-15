@@ -8,6 +8,7 @@ import com.homeowner.chores.data.Chore
 import com.homeowner.chores.data.ChoreDatabase
 import com.homeowner.chores.data.ChoreRepository
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class ChoreViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -26,5 +27,6 @@ class ChoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun delete(chore: Chore) = viewModelScope.launch { repository.delete(chore) }
 
-    fun markDone(chore: Chore) = viewModelScope.launch { repository.markDone(chore) }
+    fun markDone(chore: Chore, completedOn: LocalDate) =
+        viewModelScope.launch { repository.markDone(chore, completedOn) }
 }

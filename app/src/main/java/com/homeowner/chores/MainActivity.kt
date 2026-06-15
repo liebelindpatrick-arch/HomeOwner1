@@ -10,12 +10,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.homeowner.chores.data.Chore
 import com.homeowner.chores.databinding.ActivityMainBinding
 import com.homeowner.chores.notifications.NotificationScheduler
 import com.homeowner.chores.ui.ChoreAdapter
 import com.homeowner.chores.ui.ChoreViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,7 +29,7 @@ class MainActivity : AppCompatActivity() {
 
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* permission handled silently */ }
+    ) { /* handled silently */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[ChoreViewModel::class.java]
 
         adapter = ChoreAdapter(
-            onMarkDone = { viewModel.markDone(it) },
+            onMarkDone = { showMarkDoneDialog(it) },
             onEdit     = { openEditor(it) },
             onDelete   = { confirmDelete(it) }
         )
@@ -54,6 +58,20 @@ class MainActivity : AppCompatActivity() {
 
         requestNotificationPermissionIfNeeded()
         NotificationScheduler.scheduleDailyCheck(this)
+    }
+
+    private fun showMarkDoneDialog(chore: Chore) {
+        val picker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Hvornår udførte du \"${chore.name}\"?")
+            .setSelection(
+                LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+            )
+            .build()
+        picker.addOnPositiveButtonClickListener { millis ->
+            val date = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
+            viewModel.markDone(chore, date)
+        }
+        picker.show(supportFragmentManager, "mark_done_picker")
     }
 
     private fun openEditor(chore: Chore?) {

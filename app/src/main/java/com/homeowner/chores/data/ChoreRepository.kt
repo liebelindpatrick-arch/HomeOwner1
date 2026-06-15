@@ -16,22 +16,18 @@ class ChoreRepository(private val dao: ChoreDao) {
     suspend fun getChoresDueOn(date: LocalDate): List<Chore> =
         dao.getChoresDueOn(date.toString())
 
-    suspend fun markDone(chore: Chore) {
-        val next = nextDueDate(chore)
-        if (next == null) {
-            dao.updateChore(chore.copy(isCompleted = true))
+    suspend fun markDone(chore: Chore, completedOn: LocalDate) {
+        val interval = chore.intervalDays
+        if (interval == null || interval <= 0) {
+            dao.updateChore(chore.copy(isCompleted = true, lastCompletedDate = completedOn))
         } else {
-            dao.updateChore(chore.copy(nextDueDate = next, isCompleted = false))
-        }
-    }
-
-    private fun nextDueDate(chore: Chore): LocalDate? {
-        val today = chore.nextDueDate
-        return when (chore.recurrenceType) {
-            RecurrenceType.NONE -> null
-            RecurrenceType.DAILY -> today.plusDays(1)
-            RecurrenceType.WEEKLY -> today.plusWeeks(1)
-            RecurrenceType.MONTHLY -> today.plusMonths(1)
+            dao.updateChore(
+                chore.copy(
+                    lastCompletedDate = completedOn,
+                    nextDueDate = completedOn.plusDays(interval.toLong()),
+                    isCompleted = false
+                )
+            )
         }
     }
 }
