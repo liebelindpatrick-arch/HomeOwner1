@@ -12,5 +12,6 @@ data class Chore(
     val intervalDays: Int? = null,           // null = engang, ellers antal dage mellem udførsler
     val lastCompletedDate: LocalDate? = null,
     val nextDueDate: LocalDate = LocalDate.now(),
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val roomId: Int? = null
 )
